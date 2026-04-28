@@ -1,0 +1,121 @@
+@startuml
+title WarmHouse ER Diagram
+
+' ── User Management ───────────────────────────────────────────────────────────
+entity "User" as user {
+  * id : UUID <<PK>>
+  --
+  * email : VARCHAR
+  * name : VARCHAR
+  * password_hash : VARCHAR
+  * created_at : TIMESTAMP
+}
+
+entity "Session" as session {
+  * id : UUID <<PK>>
+  --
+  * user_id : UUID <<FK>>
+  * token_hash : VARCHAR
+  * expires_at : TIMESTAMP
+  * created_at : TIMESTAMP
+}
+
+' ── Device Management ─────────────────────────────────────────────────────────
+entity "House" as house {
+  * id : UUID <<PK>>
+  --
+  * owner_id : UUID <<FK>>
+  * name : VARCHAR
+  * address : VARCHAR
+  * created_at : TIMESTAMP
+}
+
+entity "DeviceType" as device_type {
+  * id : UUID <<PK>>
+  --
+  * name : VARCHAR
+  * vendor_name : VARCHAR
+}
+
+entity "Device" as device {
+  * id : UUID <<PK>>
+  --
+  * type_id : UUID <<FK>>
+  * house_id : UUID <<FK>>
+  * serial_number : VARCHAR
+  * name : VARCHAR
+  * status : VARCHAR
+  * installed_at : TIMESTAMP
+}
+
+entity "DeviceCommand" as command {
+  * id : UUID <<PK>>
+  --
+  * device_id : UUID <<FK>>
+  * command : VARCHAR
+  * parameters : VARCHAR
+  * status : VARCHAR
+  * issued_at : TIMESTAMP
+}
+
+' ── Telemetry ─────────────────────────────────────────────────────────────────
+entity "TelemetryData" as telemetry {
+  * id : UUID <<PK>>
+  --
+  * device_id : UUID <<FK>>
+  * metric_name : VARCHAR
+  * value : FLOAT
+  * unit : VARCHAR
+  * recorded_at : TIMESTAMP
+}
+
+' ── Automation ────────────────────────────────────────────────────────────────
+entity "AutomationRule" as rule {
+  * id : UUID <<PK>>
+  --
+  * house_id : UUID <<FK>>
+  * name : VARCHAR
+  * is_active : BOOLEAN
+  * created_at : TIMESTAMP
+}
+
+entity "AutomationTrigger" as trigger {
+  * id : UUID <<PK>>
+  --
+  * rule_id : UUID <<FK>>
+  * trigger_type : VARCHAR
+  * condition : VARCHAR
+}
+
+entity "AutomationAction" as action {
+  * id : UUID <<PK>>
+  --
+  * rule_id : UUID <<FK>>
+  * device_id : UUID <<FK>>
+  * command : VARCHAR
+  * order : INTEGER
+}
+
+entity "AutomationExecution" as execution {
+  * id : UUID <<PK>>
+  --
+  * rule_id : UUID <<FK>>
+  * status : VARCHAR
+  * started_at : TIMESTAMP
+  * finished_at : TIMESTAMP
+}
+
+' ── Relations ─────────────────────────────────────────────────────────────────
+user        ||--o{ session   : "authenticates via"
+user        ||--o{ house     : "owns"
+house       ||--o{ device    : "contains"
+house       ||--o{ rule      : "has"
+device_type ||--o{ device    : "typed as"
+device      ||--o{ telemetry : "generates"
+device      ||--o{ command   : "receives"
+rule        ||--o{ trigger   : "fired by"
+rule        ||--o{ action    : "consists of"
+rule        ||--o{ execution : "logged in"
+device      ||--o{ action    : "targeted by"
+
+@enduml
