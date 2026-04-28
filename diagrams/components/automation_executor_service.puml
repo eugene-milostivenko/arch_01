@@ -1,0 +1,41 @@
+@startuml
+title Automation Executor Service — Component Diagram
+top to bottom direction
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+' ── External containers ───────────────────────────────────────────────────────
+Container_Ext(AutomationTriggerSvc,    "Automation Trigger Service",    "Go",        "Triggers execution on condition match")
+Container_Ext(AutomationSchedulerSvc,  "Automation Scheduler Service",  "Go",        "Triggers execution on schedule")
+Container_Ext(DeviceManagementSvc,     "Device Management Service",     "Go",        "Owns device domain. Routes commands to the correct vendor.")
+Container_Ext(EventQueue,              "Event Queue",                   "Kafka",     "System event bus")
+ContainerDb_Ext(AutomationDb,          "Automation Database",           "PostgreSQL","Automation rules, scenarios and schedules")
+
+' ── Automation Executor Service boundary ─────────────────────────────────────
+Container_Boundary(AutomationExecutorService, "Automation Executor Service") {
+
+  Component(ExecutionHandler,       "Execution Handler",        "Go",            "Entry point. Accepts execution requests from Trigger and Scheduler services. Validates and initiates execution.")
+  Component(ScenarioReader,         "Scenario Reader",          "Go",            "Reads scenario definition and its steps from AutomationDb.")
+  Component(ScenarioExecutor,       "Scenario Executor",        "Go",            "Orchestrates step-by-step execution of a scenario. Handles sequencing, delays and conditional branching.")
+  Component(CommandDispatcher,      "Command Dispatcher",       "Go",            "Translates abstract scenario actions into concrete device commands. Delegates delivery to Device Management Service.")
+  Component(ExecutionLogRepository, "Execution Log Repository", "Go",            "Persists execution history: start time, steps completed, result (success / failure / partial).")
+}
+
+' ── Relations: inbound ───────────────────────────────────────────────────────
+Rel(AutomationTriggerSvc,   ExecutionHandler, "Requests execution", "HTTP / gRPC")
+Rel(AutomationSchedulerSvc, ExecutionHandler, "Requests execution", "HTTP / gRPC")
+
+' ── Relations: internal ──────────────────────────────────────────────────────
+Rel(ExecutionHandler,  ScenarioReader,         "Fetches scenario definition")
+Rel(ExecutionHandler,  ScenarioExecutor,       "Starts scenario execution")
+
+Rel(ScenarioExecutor,  CommandDispatcher,      "Dispatches each step as a command")
+Rel(ScenarioExecutor,  ExecutionLogRepository, "Writes execution progress and result")
+
+Rel(CommandDispatcher, DeviceManagementSvc,     "Sends device commands",   "HTTP / gRPC")
+
+' ── Relations: outbound ──────────────────────────────────────────────────────
+Rel(ScenarioReader,          AutomationDb,  "Reads scenario steps",    "SQL")
+Rel(ExecutionLogRepository,  AutomationDb,  "Writes execution log",    "SQL")
+Rel(ScenarioExecutor,        EventQueue,    "Publishes execution result events")
+
+@enduml

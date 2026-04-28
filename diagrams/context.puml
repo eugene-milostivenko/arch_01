@@ -1,0 +1,20 @@
+@startuml
+title WarmHouse Context diagram
+
+top to bottom direction
+
+!include  https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(user, "User", "A user of the WarmHouse system")
+
+System(WarmhouseSystem, "WarmHouse System", "Device management, telemetry, automation, user management")
+
+System_Ext(api, "Device vendor API", "External API for device connection & management")
+System_Ext(device, "Controlled device", "Vendor's device connected to the WarmHouse system")
+
+Rel(user, WarmhouseSystem, "Uses the system", "HTTPS")
+Rel(WarmhouseSystem,api,"Makes API calls to")
+Rel(WarmhouseSystem,device,"Controls")
+Rel(api,device,"Controls")
+
+@enduml

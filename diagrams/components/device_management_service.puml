@@ -1,0 +1,44 @@
+@startuml
+title Device Management Service — Component Diagram
+top to bottom direction
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+' ── External containers ───────────────────────────────────────────────────────
+Container_Ext(ApiGateway,                "API Gateway",                   "Go / Kong",  "Routes incoming requests")
+Container_Ext(ProviderIntegrationSvc1,   "Provider Integration Service 1","Go",         "ACL: vendor 1")
+Container_Ext(ProviderIntegrationSvc2,   "Provider Integration Service 2","Go",         "ACL: vendor 2")
+Container_Ext(EventQueue,                "Event Queue",                   "Kafka",       "System event bus")
+ContainerDb_Ext(DeviceDb,               "Device Database",               "PostgreSQL",  "Device registry and state data")
+
+' ── Device Management Service boundary ───────────────────────────────────────
+Container_Boundary(DeviceManagementService, "Device Management Service") {
+
+  Component(ApiHandler,            "API Handler",             "Go, HTTP/gRPC", "Accepts and validates incoming requests from API Gateway. Routes to appropriate handlers.")
+  Component(CommandHandler,        "Command Handler",         "Go",            "Validates and processes commands sent to devices (on/off, set value, etc.)")
+  Component(DeviceStateManager,    "Device State Manager",    "Go",            "Tracks and updates current device state (online/offline, last known values)")
+  Component(DeviceRegistry,        "Device Registry",         "Go",            "Business logic for managing device entities: create, update, delete, assign to user")
+  Component(DeviceRepository,      "Device Repository",       "Go",            "Data access abstraction over DeviceDb. Executes queries and maps DB models to domain entities.")
+  Component(VendorIntegrationClient, "Vendor Integration Client", "Go",        "Outbound client for ProviderIntegrationServices. Translates domain commands to vendor-specific calls.")
+}
+
+' ── Relations: inbound ───────────────────────────────────────────────────────
+Rel(ApiGateway, ApiHandler, "Sends requests", "HTTP / gRPC")
+
+' ── Relations: internal ──────────────────────────────────────────────────────
+Rel(ApiHandler, CommandHandler,     "Dispatches device commands")
+Rel(ApiHandler, DeviceRegistry,     "Dispatches registry operations (CRUD)")
+
+Rel(CommandHandler,  DeviceStateManager,      "Reads current device state")
+Rel(CommandHandler,  VendorIntegrationClient, "Sends command to vendor layer")
+
+Rel(DeviceStateManager, DeviceRepository, "Reads / Writes device state")
+
+Rel(DeviceRegistry, DeviceRepository, "Reads / Writes device data")
+
+' ── Relations: outbound ──────────────────────────────────────────────────────
+Rel(DeviceRepository,        DeviceDb,                  "Reads / Writes", "SQL")
+Rel(VendorIntegrationClient, ProviderIntegrationSvc1,   "Sends commands",  "HTTP / gRPC")
+Rel(VendorIntegrationClient, ProviderIntegrationSvc2,   "Sends commands",  "HTTP / gRPC")
+Rel(DeviceStateManager,      EventQueue,                "Publishes device state change events")
+
+@enduml
