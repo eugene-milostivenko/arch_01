@@ -25,8 +25,7 @@ Container_Boundary(WarmHouseSystem, "WarmHouse System") {
 
   ' ── Domain: Device Management ──────────────────────────────────────────────
   Container_Boundary(DeviceManagementDomain, "Device Management") {
-    Container(DeviceManagementService,   "Device Management Service",   "Go", "Device registry and command dispatching")
-    Container(DeviceProvisioningService, "Device Provisioning Service", "Go", "Self-service onboarding and registration of new devices")
+    Container(DeviceManagementService, "Device Management Service", "Go", "Device registry, provisioning and command dispatching")
     ContainerDb(DeviceDb, "Device Database", "PostgreSQL", "Device registry and provisioning data")
 
     ' Anti-Corruption Layer
@@ -41,10 +40,8 @@ Container_Boundary(WarmHouseSystem, "WarmHouse System") {
 
   ' ── Domain: Automation ─────────────────────────────────────────────────────
   Container_Boundary(AutomationDomain, "Automation") {
-    Container(AutomationManagementService, "Automation Management Service", "Go", "Manages automation rules and scenarios")
-    Container(AutomationTriggerService,    "Automation Trigger Service",    "Go", "Evaluates conditions and initiates scenario execution")
-    Container(AutomationSchedulerService,  "Automation Scheduler Service",  "Go", "Schedules scenario execution by time or recurring rules")
-    Container(AutomationExecutorService,   "Automation Executor Service",   "Go", "Executes device commands according to a scenario")
+    Container(AutomationManagementService, "Automation Management Service", "Go", "CRUD for automation rules and scenarios")
+    Container(AutomationEngineService,     "Automation Engine Service",     "Go", "Evaluates triggers, schedules and executes automation scenarios")
     ContainerDb(AutomationDb, "Automation Database", "PostgreSQL", "Automation rules, scenarios and schedules")
   }
 
@@ -78,7 +75,6 @@ Rel(MobileApp,   ApiGateway, "Requests", "HTTPS")
 ' ── Relations: API Gateway → services ────────────────────────────────────────
 Rel(ApiGateway, UserManagementService,       "Routes to")
 Rel(ApiGateway, DeviceManagementService,     "Routes to")
-Rel(ApiGateway, DeviceProvisioningService,   "Routes to")
 Rel(ApiGateway, TelemetryService,            "Routes to")
 Rel(ApiGateway, AnalyticsService,            "Routes to")
 Rel(ApiGateway, VideoStreamingService,       "Routes to")
@@ -87,10 +83,8 @@ Rel(ApiGateway, AutomationManagementService, "Routes to")
 ' ── Relations: services → databases ──────────────────────────────────────────
 Rel(UserManagementService,       UserDb,       "Reads / Writes")
 Rel(DeviceManagementService,     DeviceDb,     "Reads / Writes")
-Rel(DeviceProvisioningService,   DeviceDb,     "Reads / Writes")
 Rel(AutomationManagementService, AutomationDb, "Reads / Writes")
-Rel(AutomationSchedulerService,  AutomationDb, "Reads schedules")
-Rel(AutomationExecutorService,   AutomationDb, "Writes execution log")
+Rel(AutomationEngineService,     AutomationDb, "Reads rules / Writes execution log")
 Rel(TelemetryService,            TelemetryDb,  "Reads / Writes")
 Rel(AnalyticsService,            TelemetryDb,  "Reads")
 
@@ -104,17 +98,15 @@ Rel(ProviderIntegrationService2, ProviderSystem2, "Interacts", "HTTPS / vendor A
 ' ── Relations: Kafka producers ───────────────────────────────────────────────
 Rel(ProviderIntegrationService1, EventQueue, "Publishes device events")
 Rel(ProviderIntegrationService2, EventQueue, "Publishes device events")
-Rel(AutomationExecutorService, EventQueue, "Publishes execution result events")
+Rel(AutomationEngineService,     EventQueue, "Publishes execution result events")
 
 ' ── Relations: Kafka consumers ───────────────────────────────────────────────
-Rel(TelemetryService,         EventQueue, "Consumes telemetry events")
-Rel(AutomationTriggerService, EventQueue, "Consumes device events")
+Rel(TelemetryService,        EventQueue, "Consumes telemetry events")
+Rel(AutomationEngineService, EventQueue, "Consumes device events")
 
 ' ── Relations: automation ────────────────────────────────────────────────────
-Rel(AutomationTriggerService,   AutomationManagementService, "Reads automation rules")
-Rel(AutomationTriggerService,   AutomationExecutorService,   "Triggers execution")
-Rel(AutomationSchedulerService, AutomationExecutorService,   "Triggers scheduled execution")
-Rel(AutomationExecutorService,  DeviceManagementService,     "Sends device commands")
+Rel(AutomationEngineService, AutomationManagementService, "Reads automation rules")
+Rel(AutomationEngineService, DeviceManagementService,     "Sends device commands")
 
 ' ── Relations: manual device control ─────────────────────────────────────────
 Rel(DeviceManagementService, ProviderIntegrationService1, "Sends control commands")
