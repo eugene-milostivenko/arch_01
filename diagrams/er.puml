@@ -37,11 +37,19 @@ entity "DeviceType" as device_type {
   * vendor_name : VARCHAR
 }
 
+entity "Module" as module {
+  * id : UUID <<PK>>
+  --
+  * house_id : UUID <<FK>>
+  * name : VARCHAR
+  * created_at : TIMESTAMP
+}
+
 entity "Device" as device {
   * id : UUID <<PK>>
   --
   * type_id : UUID <<FK>>
-  * house_id : UUID <<FK>>
+  * module_id : UUID <<FK>>
   * serial_number : VARCHAR
   * name : VARCHAR
   * status : VARCHAR
@@ -108,7 +116,8 @@ entity "AutomationExecution" as execution {
 ' ── Relations ─────────────────────────────────────────────────────────────────
 user        ||--o{ session   : "authenticates via"
 user        ||--o{ house     : "owns"
-house       ||--o{ device    : "contains"
+house       ||--o{ module    : "has"
+module      ||--o{ device    : "contains"
 house       ||--o{ rule      : "has"
 device_type ||--o{ device    : "typed as"
 device      ||--o{ telemetry : "generates"
