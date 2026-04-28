@@ -88,6 +88,7 @@ Rel(DeviceManagementService,     DeviceDb,     "Reads / Writes")
 Rel(DeviceProvisioningService,   DeviceDb,     "Reads / Writes")
 Rel(AutomationManagementService, AutomationDb, "Reads / Writes")
 Rel(AutomationSchedulerService,  AutomationDb, "Reads schedules")
+Rel(AutomationExecutorService,   AutomationDb, "Writes execution log")
 Rel(TelemetryService,            TelemetryDb,  "Reads / Writes")
 Rel(AnalyticsService,            TelemetryDb,  "Reads")
 
@@ -111,8 +112,7 @@ Rel(AutomationTriggerService, EventQueue, "Consumes device events")
 Rel(AutomationTriggerService,   AutomationManagementService, "Reads automation rules")
 Rel(AutomationTriggerService,   AutomationExecutorService,   "Triggers execution")
 Rel(AutomationSchedulerService, AutomationExecutorService,   "Triggers scheduled execution")
-Rel(AutomationExecutorService,  ProviderIntegrationService1, "Sends device commands")
-Rel(AutomationExecutorService,  ProviderIntegrationService2, "Sends device commands")
+Rel(AutomationExecutorService,  DeviceManagementService,     "Sends device commands")
 
 ' ── Relations: manual device control ─────────────────────────────────────────
 Rel(DeviceManagementService, ProviderIntegrationService1, "Sends control commands")
