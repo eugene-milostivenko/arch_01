@@ -31,11 +31,13 @@ Container_Boundary(WarmHouseSystem, "WarmHouse System") {
 
     ' Anti-Corruption Layer
     Container_Boundary(ACL, "Anti-Corruption Layer") {
-      Container(MQTTBroker, "MQTT Broker", "EMQX / Mosquitto", "Receives telemetry from devices and sends commands to them")
       Container(ProviderIntegrationService1, "Provider Integration Service 1", "Go", "Integration with device vendor 1")
       Container(ProviderIntegrationService2, "Provider Integration Service 2", "Go", "Integration with device vendor 2")
     }
   }
+
+  ' IoT infrastructure
+  Container(MQTTBroker, "MQTT Broker", "EMQX / Mosquitto", "Receives telemetry from devices and forwards it to integration services")
 
   ' ── Domain: Automation ─────────────────────────────────────────────────────
   Container_Boundary(AutomationDomain, "Automation") {
