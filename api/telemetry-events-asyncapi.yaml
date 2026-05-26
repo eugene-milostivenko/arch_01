@@ -1,0 +1,106 @@
+asyncapi: 2.6.0
+info:
+  title: Telemetry Events
+  description: |
+    Asynchronous events published when new telemetry data is received from devices.
+    Provider Integration Services consume raw MQTT data, normalize it, and publish
+    structured telemetry events to Kafka. These events are consumed by the Telemetry Service
+    (for persistence) and the Automation Engine Service (for trigger evaluation).
+  version: 1.0.0
+
+servers:
+  development:
+    url: localhost:9092
+    protocol: kafka
+    description: Local Kafka broker
+
+channels:
+  device.telemetry.received:
+    description: |
+      Published when a new telemetry measurement is received from a device.
+      One message per metric per device reading.
+    subscribe:
+      operationId: onTelemetryReceived
+      summary: Receive telemetry event
+      message:
+        $ref: "#/components/messages/TelemetryEvent"
+
+components:
+  messages:
+    TelemetryEvent:
+      name: TelemetryEvent
+      title: Device Telemetry Event
+      summary: A single telemetry measurement from a device
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/TelemetryEventPayload"
+      examples:
+        - name: temperature_reading
+          summary: Temperature reading from a thermostat
+          payload:
+            event_id: "e1f2a3b4-c5d6-7890-abcd-ef1234567890"
+            device_id: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+            metric_name: "temperature"
+            value: 22.5
+            unit: "celsius"
+            recorded_at: "2025-05-26T11:55:00Z"
+            metadata:
+              vendor: "provider_1"
+              firmware_version: "2.1.0"
+        - name: humidity_reading
+          summary: Humidity reading from a sensor
+          payload:
+            event_id: "f2a3b4c5-d6e7-8901-bcda-ef2345678901"
+            device_id: "a290f1ee-6c54-4b01-90e6-d701748f0852"
+            metric_name: "humidity"
+            value: 45.2
+            unit: "percent"
+            recorded_at: "2025-05-26T11:55:00Z"
+            metadata:
+              vendor: "provider_2"
+              firmware_version: "1.3.5"
+
+  schemas:
+    TelemetryEventPayload:
+      type: object
+      required:
+        - event_id
+        - device_id
+        - metric_name
+        - value
+        - unit
+        - recorded_at
+      properties:
+        event_id:
+          type: string
+          format: uuid
+          description: Unique event identifier for deduplication
+        device_id:
+          type: string
+          format: uuid
+          description: Device that produced the measurement
+        metric_name:
+          type: string
+          description: "Name of the metric (e.g. temperature, humidity, power_consumption)"
+        value:
+          type: number
+          format: float
+          description: Measured value
+        unit:
+          type: string
+          description: "Unit of measurement (e.g. celsius, percent, watts)"
+        recorded_at:
+          type: string
+          format: date-time
+          description: Timestamp when the measurement was taken on the device
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Optional vendor-specific metadata
+          properties:
+            vendor:
+              type: string
+              description: Vendor identifier
+            firmware_version:
+              type: string
+              description: Device firmware version

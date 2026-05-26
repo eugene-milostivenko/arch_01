@@ -100,11 +100,30 @@
 
 ### 1. Тип API
 
-Укажите, какой тип API вы будете использовать для взаимодействия микросервисов. Объясните своё решение.
+Для взаимодействия микросервисов используются два типа API:
+
+**REST API (OpenAPI 3.0)** — для синхронного взаимодействия между сервисами, когда вызывающей стороне необходим немедленный ответ. Используется для:
+- Запросов от API Gateway к бэкенд-сервисам (Device Management, Telemetry, Automation Management)
+- Межсервисных вызовов, где требуется подтверждение выполнения (например, Automation Engine → Device Management для отправки команды на устройство)
+
+**AsyncAPI** — для асинхронного взаимодействия через Event Queue (Kafka). Используется для:
+- Публикации телеметрических событий от Provider Integration Services — подписчикам не нужно получать ответ немедленно, а данные поступают с высокой частотой
+- Потребления событий Telemetry Service (для сохранения) и Automation Engine Service (для оценки триггеров)
+
+Асинхронный подход для телеметрии выбран потому, что:
+1. Данные с устройств поступают непрерывным потоком — синхронная обработка создала бы bottleneck
+2. Потребителей может быть несколько (Telemetry Service, Automation Engine), и fan-out через Kafka эффективнее point-to-point вызовов
+3. Kafka обеспечивает буферизацию при пиковых нагрузках и гарантию доставки
 
 ### 2. Документация API
 
-Здесь приложите ссылки на документацию API для микросервисов, которые вы спроектировали в первой части проектной работы. Для документирования используйте Swagger/OpenAPI или AsyncAPI.
+**REST API (OpenAPI 3.0):**
+- [Device Management Service API](api/device-management-api.yaml) — получение информации об устройстве, отправка команд
+- [Telemetry Service API](api/telemetry-api.yaml) — запрос исторических измерений телеметрии
+- [Automation Management Service API](api/automation-management-api.yaml) — создание правил автоматизации
+
+**AsyncAPI:**
+- [Telemetry Events](api/telemetry-events-asyncapi.yaml) — событие получения новой телеметрии с устройства (Kafka topic `device.telemetry.received`)
 
 # Задание 5. Работа с docker и docker-compose
 

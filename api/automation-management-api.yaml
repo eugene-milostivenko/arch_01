@@ -1,0 +1,283 @@
+openapi: 3.0.3
+info:
+  title: Automation Management Service API
+  description: API for managing automation rules — creating scenarios that react to device events and trigger actions.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development
+
+paths:
+  /automation/rules:
+    post:
+      summary: Create automation rule
+      description: |
+        Creates a new automation rule with triggers and actions.
+        A trigger defines the condition (e.g. temperature exceeds threshold),
+        and actions define what should happen (e.g. turn on heating).
+        The rule is created in active state by default.
+      operationId: createAutomationRule
+      tags:
+        - Automation Rules
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRuleRequest"
+            examples:
+              heating_rule:
+                summary: Turn on heating when temperature drops below 18°C
+                value:
+                  name: "Cold room heating"
+                  house_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                  is_active: true
+                  triggers:
+                    - trigger_type: "telemetry_threshold"
+                      condition:
+                        device_id: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                        metric_name: "temperature"
+                        operator: "lt"
+                        value: 18.0
+                  actions:
+                    - device_id: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                      command: "set_temperature"
+                      parameters:
+                        target_temperature: 22.0
+                        unit: "celsius"
+                      order: 1
+      responses:
+        "201":
+          description: Rule created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuleResponse"
+              examples:
+                created:
+                  value:
+                    id: "r1a2b3c4-d5e6-7890-abcd-ef1234567890"
+                    name: "Cold room heating"
+                    house_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                    created_by: "u1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                    is_active: true
+                    triggers:
+                      - id: "t1a2b3c4-d5e6-7890-abcd-ef1234567890"
+                        trigger_type: "telemetry_threshold"
+                        condition:
+                          device_id: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                          metric_name: "temperature"
+                          operator: "lt"
+                          value: 18.0
+                    actions:
+                      - id: "a1a2b3c4-d5e6-7890-abcd-ef1234567890"
+                        device_id: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                        command: "set_temperature"
+                        parameters:
+                          target_temperature: 22.0
+                          unit: "celsius"
+                        order: 1
+                    created_at: "2025-05-26T12:00:00Z"
+                    updated_at: "2025-05-26T12:00:00Z"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                missing_triggers:
+                  value:
+                    code: "VALIDATION_ERROR"
+                    message: "At least one trigger is required"
+                invalid_operator:
+                  value:
+                    code: "VALIDATION_ERROR"
+                    message: "Unsupported operator 'like'. Allowed: eq, ne, gt, gte, lt, lte"
+        "404":
+          description: Referenced house or device not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                house_not_found:
+                  value:
+                    code: "HOUSE_NOT_FOUND"
+                    message: "House with id 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' not found"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                server_error:
+                  value:
+                    code: "INTERNAL_ERROR"
+                    message: "An unexpected error occurred"
+
+components:
+  schemas:
+    CreateRuleRequest:
+      type: object
+      required:
+        - name
+        - house_id
+        - triggers
+        - actions
+      properties:
+        name:
+          type: string
+          description: Human-readable rule name
+        house_id:
+          type: string
+          format: uuid
+          description: House this rule belongs to
+        is_active:
+          type: boolean
+          default: true
+          description: Whether the rule is active immediately after creation
+        triggers:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/TriggerInput"
+        actions:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/ActionInput"
+
+    TriggerInput:
+      type: object
+      required:
+        - trigger_type
+        - condition
+      properties:
+        trigger_type:
+          type: string
+          enum: [telemetry_threshold, schedule, device_state_change]
+          description: |
+            Type of trigger:
+            - telemetry_threshold: fires when a metric crosses a threshold
+            - schedule: fires on a cron schedule
+            - device_state_change: fires when device status changes
+        condition:
+          type: object
+          additionalProperties: true
+          description: Trigger-specific condition parameters
+
+    ActionInput:
+      type: object
+      required:
+        - device_id
+        - command
+        - order
+      properties:
+        device_id:
+          type: string
+          format: uuid
+          description: Target device for the action
+        command:
+          type: string
+          description: Command to send to the device
+        parameters:
+          type: object
+          additionalProperties: true
+          description: Command-specific parameters
+        order:
+          type: integer
+          minimum: 1
+          description: Execution order within the rule
+
+    RuleResponse:
+      type: object
+      required:
+        - id
+        - name
+        - house_id
+        - created_by
+        - is_active
+        - triggers
+        - actions
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        house_id:
+          type: string
+          format: uuid
+        created_by:
+          type: string
+          format: uuid
+        is_active:
+          type: boolean
+        triggers:
+          type: array
+          items:
+            $ref: "#/components/schemas/TriggerResponse"
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActionResponse"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TriggerResponse:
+      type: object
+      required:
+        - id
+        - trigger_type
+        - condition
+      properties:
+        id:
+          type: string
+          format: uuid
+        trigger_type:
+          type: string
+        condition:
+          type: object
+          additionalProperties: true
+
+    ActionResponse:
+      type: object
+      required:
+        - id
+        - device_id
+        - command
+        - order
+      properties:
+        id:
+          type: string
+          format: uuid
+        device_id:
+          type: string
+          format: uuid
+        command:
+          type: string
+        parameters:
+          type: object
+          additionalProperties: true
+        order:
+          type: integer
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string

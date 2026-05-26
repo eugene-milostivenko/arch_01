@@ -1,0 +1,288 @@
+openapi: 3.0.3
+info:
+  title: Device Management Service API
+  description: API for managing smart home devices — retrieving device information and sending commands.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development
+
+paths:
+  /devices/{deviceId}:
+    get:
+      summary: Get device information
+      description: Returns full information about a device including its current status, type, and location within the house.
+      operationId: getDevice
+      tags:
+        - Devices
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          description: Unique device identifier
+          schema:
+            type: string
+            format: uuid
+            example: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+      responses:
+        "200":
+          description: Device found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+              examples:
+                thermostat:
+                  summary: Thermostat in living room
+                  value:
+                    id: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                    name: "Living Room Thermostat"
+                    serial_number: "TH-2024-00142"
+                    status: "online"
+                    type:
+                      id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                      name: "Thermostat"
+                      vendor_name: "Provider 1"
+                    module:
+                      id: "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+                      name: "Living Room"
+                    installed_at: "2025-01-15T10:30:00Z"
+                    updated_at: "2025-05-20T14:22:00Z"
+        "404":
+          description: Device not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                not_found:
+                  value:
+                    code: "DEVICE_NOT_FOUND"
+                    message: "Device with id 'd290f1ee-6c54-4b01-90e6-d701748f0851' not found"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                server_error:
+                  value:
+                    code: "INTERNAL_ERROR"
+                    message: "An unexpected error occurred"
+
+  /devices/{deviceId}/commands:
+    post:
+      summary: Send command to device
+      description: |
+        Sends a control command to the device (e.g. turn on/off, set temperature).
+        The command is validated, then dispatched to the appropriate vendor integration service.
+        Returns the created command with a tracking status.
+      operationId: sendDeviceCommand
+      tags:
+        - Device Commands
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          description: Unique device identifier
+          schema:
+            type: string
+            format: uuid
+            example: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommandRequest"
+            examples:
+              set_temperature:
+                summary: Set thermostat to 23°C
+                value:
+                  command: "set_temperature"
+                  parameters:
+                    target_temperature: 23.0
+                    unit: "celsius"
+              turn_off:
+                summary: Turn device off
+                value:
+                  command: "turn_off"
+                  parameters: {}
+      responses:
+        "201":
+          description: Command accepted and dispatched
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandResponse"
+              examples:
+                accepted:
+                  value:
+                    id: "c3d4e5f6-a7b8-9012-cdef-123456789012"
+                    device_id: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                    command: "set_temperature"
+                    parameters:
+                      target_temperature: 23.0
+                      unit: "celsius"
+                    status: "dispatched"
+                    issued_at: "2025-05-26T12:00:00Z"
+        "400":
+          description: Invalid command or parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                invalid_command:
+                  value:
+                    code: "INVALID_COMMAND"
+                    message: "Command 'fly' is not supported for device type 'Thermostat'"
+        "404":
+          description: Device not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                not_found:
+                  value:
+                    code: "DEVICE_NOT_FOUND"
+                    message: "Device with id 'd290f1ee-6c54-4b01-90e6-d701748f0851' not found"
+        "422":
+          description: Device is offline or unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                offline:
+                  value:
+                    code: "DEVICE_OFFLINE"
+                    message: "Device is currently offline and cannot receive commands"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                server_error:
+                  value:
+                    code: "INTERNAL_ERROR"
+                    message: "An unexpected error occurred"
+
+components:
+  schemas:
+    Device:
+      type: object
+      required:
+        - id
+        - name
+        - serial_number
+        - status
+        - type
+        - module
+        - installed_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        serial_number:
+          type: string
+        status:
+          type: string
+          enum: [online, offline, error]
+        type:
+          $ref: "#/components/schemas/DeviceType"
+        module:
+          $ref: "#/components/schemas/Module"
+        installed_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    DeviceType:
+      type: object
+      required:
+        - id
+        - name
+        - vendor_name
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        vendor_name:
+          type: string
+
+    Module:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+
+    CommandRequest:
+      type: object
+      required:
+        - command
+      properties:
+        command:
+          type: string
+          description: "Command name (e.g. turn_on, turn_off, set_temperature)"
+        parameters:
+          type: object
+          additionalProperties: true
+          description: "Command-specific parameters as key-value pairs"
+
+    CommandResponse:
+      type: object
+      required:
+        - id
+        - device_id
+        - command
+        - parameters
+        - status
+        - issued_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        device_id:
+          type: string
+          format: uuid
+        command:
+          type: string
+        parameters:
+          type: object
+          additionalProperties: true
+        status:
+          type: string
+          enum: [dispatched, delivered, failed]
+        issued_at:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
