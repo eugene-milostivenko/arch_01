@@ -30,6 +30,15 @@ entity "House" as house {
   * created_at : TIMESTAMP
 }
 
+entity "UserHouseAccess" as house_access {
+  * id : UUID <<PK>>
+  --
+  * user_id : UUID <<FK>>
+  * house_id : UUID <<FK>>
+  * role : VARCHAR
+  * granted_at : TIMESTAMP
+}
+
 entity "DeviceType" as device_type {
   * id : UUID <<PK>>
   --
@@ -60,8 +69,9 @@ entity "DeviceCommand" as command {
   * id : UUID <<PK>>
   --
   * device_id : UUID <<FK>>
+  * issued_by : UUID <<FK>>
   * command : VARCHAR
-  * parameters : VARCHAR
+  * parameters : JSONB
   * status : VARCHAR
   * issued_at : TIMESTAMP
 }
@@ -82,6 +92,7 @@ entity "AutomationRule" as rule {
   * id : UUID <<PK>>
   --
   * house_id : UUID <<FK>>
+  * created_by : UUID <<FK>>
   * name : VARCHAR
   * is_active : BOOLEAN
   * created_at : TIMESTAMP
@@ -92,7 +103,7 @@ entity "AutomationTrigger" as trigger {
   --
   * rule_id : UUID <<FK>>
   * trigger_type : VARCHAR
-  * condition : VARCHAR
+  * condition : JSONB
 }
 
 entity "AutomationAction" as action {
@@ -108,23 +119,29 @@ entity "AutomationExecution" as execution {
   * id : UUID <<PK>>
   --
   * rule_id : UUID <<FK>>
+  * trigger_id : UUID <<FK>>
   * status : VARCHAR
   * started_at : TIMESTAMP
   * finished_at : TIMESTAMP
 }
 
 ' ── Relations ─────────────────────────────────────────────────────────────────
-user        ||--o{ session   : "authenticates via"
-user        ||--o{ house     : "owns"
+user        ||--o{ session      : "authenticates via"
+user        ||--o{ house        : "owns"
+user        ||--o{ house_access : "has access via"
+house       ||--o{ house_access : "accessed by"
 house       ||--o{ module    : "has"
 module      ||--o{ device    : "contains"
 house       ||--o{ rule      : "has"
+user        ||--o{ rule      : "creates"
 device_type ||--o{ device    : "typed as"
 device      ||--o{ telemetry : "generates"
 device      ||--o{ command   : "receives"
 rule        ||--o{ trigger   : "fired by"
 rule        ||--o{ action    : "consists of"
 rule        ||--o{ execution : "logged in"
+trigger     ||--o{ execution : "fires"
 device      ||--o{ action    : "targeted by"
+user        ||--o{ command   : "issues"
 
 @enduml
