@@ -1,0 +1,20 @@
+@startuml
+title WarmHouse Context diagram
+
+top to bottom direction
+
+!include  https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+Person(user, "User", "A user of the WarmHouse system")
+
+System(WarmhouseSystem, "WarmHouse System", "Device management, telemetry, automation, user management")
+
+System_Ext(device, "Smart Home Device", "Vendor's IoT device (thermostat, light, gate). Sends telemetry and receives commands.")
+System_Ext(api,    "Device Vendor API", "External vendor API for device connection and management")
+
+Rel(user,            WarmhouseSystem, "Uses the system")
+Rel(device,          WarmhouseSystem, "Sends telemetry")
+Rel(WarmhouseSystem, device,          "Sends control commands")
+Rel(WarmhouseSystem, api,             "Makes API calls to")
+
+@enduml

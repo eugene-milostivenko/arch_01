@@ -1,0 +1,139 @@
+@startuml
+title Automation Executor Service — Code (Class) Diagram
+
+skinparam classAttributeIconSize 0
+hide empty members
+
+' ── Entry point ───────────────────────────────────────────────────────────────
+class ExecutionHandler {
+  - reader   : ScenarioReader
+  - executor : ScenarioExecutor
+  + HandleExecution(req: ExecutionRequest) : ScenarioExecution
+}
+
+' ── Reads the scenario and its steps from the DB ───────────────────────────────
+class ScenarioReader {
+  - repo : ScenarioRepository
+  + GetScenario(id: ScenarioID) : Scenario
+}
+
+' ── Orchestrates ordered execution of the scenario's steps ─────────────────────
+class ScenarioExecutor {
+  - dispatcher : CommandDispatcher
+  - execRepo   : ExecutionRepository
+  - publisher  : EventPublisher
+  + Execute(scenario: Scenario, triggerID: TriggerID) : ScenarioExecution
+  - runStep(step: ScenarioStep) : CommandAck
+}
+
+' ── Translates a scenario step into a concrete device command ──────────────────
+class CommandDispatcher {
+  - deviceClient : DeviceClient
+  + Dispatch(step: ScenarioStep) : CommandAck
+}
+
+' ── Ports (Go interfaces) ───────────────────────────────────────────────────────
+interface ScenarioRepository {
+  + FindByID(id: ScenarioID) : Scenario
+}
+interface ExecutionRepository {
+  + Create(exec: ScenarioExecution) : void
+  + Update(exec: ScenarioExecution) : void
+}
+interface DeviceClient {
+  + SendCommand(cmd: DeviceCommand) : CommandAck
+}
+interface EventPublisher {
+  + Publish(event: ExecutionResultEvent) : void
+}
+
+' ── Domain entities (aligned with Automation Management API and ER) ─────────────
+class Scenario {
+  + ID       : ScenarioID
+  + HouseID  : UUID
+  + Name     : string
+  + IsActive : bool
+  + Triggers : ScenarioTrigger[]
+  + Steps    : ScenarioStep[]
+}
+class ScenarioTrigger {
+  + ID          : TriggerID
+  + TriggerType : TriggerType
+  + Condition   : map
+}
+class ScenarioStep {
+  + ID         : UUID
+  + DeviceID   : UUID
+  + Command    : string
+  + Parameters : map
+  + Order      : int
+}
+class DeviceCommand {
+  + DeviceID   : UUID
+  + Command    : string
+  + Parameters : map
+}
+class CommandAck {
+  + CommandID : UUID
+  + Status    : CommandStatus
+}
+class ScenarioExecution {
+  + ID         : UUID
+  + ScenarioID : ScenarioID
+  + TriggerID  : TriggerID
+  + Status     : ExecutionStatus
+  + StartedAt  : time
+  + FinishedAt : time
+}
+class ExecutionRequest {
+  + ScenarioID : ScenarioID
+  + TriggerID  : TriggerID
+}
+class ExecutionResultEvent {
+  + ScenarioID  : ScenarioID
+  + ExecutionID : UUID
+  + Status      : ExecutionStatus
+  + FinishedAt  : time
+}
+
+enum ExecutionStatus {
+  RUNNING
+  SUCCESS
+  PARTIAL
+  FAILURE
+}
+enum CommandStatus {
+  DISPATCHED
+  DELIVERED
+  FAILED
+}
+enum TriggerType {
+  TELEMETRY_THRESHOLD
+  SCHEDULE
+  DEVICE_STATE_CHANGE
+}
+
+' ── Composition / usage relations ──────────────────────────────────────────────
+ExecutionHandler   --> ScenarioReader        : uses
+ExecutionHandler   --> ScenarioExecutor       : uses
+ScenarioReader     ..> ScenarioRepository      : reads via
+ScenarioExecutor   --> CommandDispatcher        : dispatches steps
+ScenarioExecutor   ..> ExecutionRepository      : persists via
+ScenarioExecutor   ..> EventPublisher           : publishes via
+CommandDispatcher  ..> DeviceClient             : sends via
+
+Scenario "1" *-- "many" ScenarioStep
+Scenario "1" *-- "many" ScenarioTrigger
+
+CommandDispatcher  ..> DeviceCommand          : creates
+CommandDispatcher  ..> CommandAck             : returns
+ScenarioReader     ..> Scenario               : returns
+ScenarioExecutor   ..> ScenarioExecution      : builds
+ScenarioExecutor   ..> ExecutionResultEvent   : builds
+ExecutionHandler   ..> ExecutionRequest       : accepts
+
+ScenarioExecution --> ExecutionStatus
+CommandAck        --> CommandStatus
+ScenarioTrigger   --> TriggerType
+
+@enduml

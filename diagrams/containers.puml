@@ -1,0 +1,130 @@
+@startuml
+title WarmHouse Container Diagram
+top to bottom direction
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+' ── Actors ───────────────────────────────────────────────────────────────────
+Person(user,  "User",          "A user of the WarmHouse system")
+Person(admin, "Administrator", "An administrator managing the system")
+
+' ── External systems ──────────────────────────────────────────────────────────
+System_Ext(SmartDevices,    "Smart Home Devices", "Physical IoT devices: thermostats, lights, cameras, gates")
+System_Ext(ProviderSystem1, "Provider System 1",  "Device vendor 1 (e.g. heating)")
+System_Ext(ProviderSystem2, "Provider System 2",  "Device vendor 2 (e.g. lighting, gates)")
+System_Ext(HelpDeskSystem,  "Help Desk System",   "External domain. Out of scope: ticketing, chat, support statistics")
+
+' ── System boundary ───────────────────────────────────────────────────────────
+Container_Boundary(WarmHouseSystem, "WarmHouse System") {
+
+  ' Front-ends
+  Container(WebFrontend, "Web Client",         "React",          "Web UI for users and administrators")
+  Container(MobileApp,   "Mobile Application", "Kotlin / Swift", "Mobile app for managing devices")
+
+  ' API Gateway
+  Container(ApiGateway, "API Gateway", "Go / Kong", "Single entry point: auth, rate limiting, routing")
+
+  ' ── Domain: Device Management ──────────────────────────────────────────────
+  Container_Boundary(DeviceManagementDomain, "Device Management") {
+    Container(DeviceManagementService, "Device Management Service", "Go", "Device registry, provisioning and command dispatching")
+    ContainerDb(DeviceDb, "Device Database", "PostgreSQL", "Device registry and provisioning data")
+
+    ' Anti-Corruption Layer
+    Container_Boundary(ACL, "Anti-Corruption Layer") {
+      Container(ProviderIntegrationService1, "Provider Integration Service 1", "Go", "Integration with device vendor 1")
+      Container(ProviderIntegrationService2, "Provider Integration Service 2", "Go", "Integration with device vendor 2")
+    }
+  }
+
+  ' IoT infrastructure
+  Container(MQTTBroker, "MQTT Broker", "EMQX / Mosquitto", "Receives telemetry from devices and forwards it to integration services")
+
+  ' ── Domain: Automation ─────────────────────────────────────────────────────
+  Container_Boundary(AutomationDomain, "Automation") {
+    Container(AutomationManagementService, "Automation Management Service", "Go", "CRUD for automation scenarios, triggers and steps")
+    Container(AutomationTriggerService,    "Automation Trigger Service",    "Go", "Consumes device events and triggers execution on condition match")
+    Container(AutomationSchedulerService,  "Automation Scheduler Service",  "Go", "Triggers execution on schedule")
+    Container(AutomationExecutorService,   "Automation Executor Service",   "Go", "Orchestrates ordered execution of automation scenario steps")
+    ContainerDb(AutomationDb, "Automation Database", "PostgreSQL", "Scenarios, triggers, steps and execution log")
+  }
+
+  ' ── Domain: Telemetry ──────────────────────────────────────────────────────
+  Container_Boundary(TelemetryDomain, "Telemetry") {
+    Container(TelemetryService,       "Telemetry Service",        "Go",     "Receives and stores device telemetry")
+    Container(AnalyticsService,       "Analytics Service",        "Go",     "Analyses historical telemetry data and provides insights")
+    Container(VideoStreamingService,  "Video Streaming Service",  "Go",     "Handles live video streams from cameras")
+    ContainerDb(TelemetryDb, "Telemetry Database",  "ClickHouse", "Historical telemetry data")
+  }
+
+  ' ── Domain: User Management ────────────────────────────────────────────────
+  Container_Boundary(UserManagementDomain, "User Management & Access Control") {
+    Container(UserManagementService, "User Management Service", "Go", "Manages users, profiles, authentication and authorization")
+    ContainerDb(UserDb, "User Database", "PostgreSQL", "User and authentication data")
+  }
+
+  ' Event bus
+  Container(EventQueue, "Event Queue", "Kafka", "Event bus: telemetry, commands")
+}
+
+' ── Relations: users → front-ends ────────────────────────────────────────────
+Rel(user,  WebFrontend, "Uses", "HTTPS")
+Rel(user,  MobileApp,   "Uses", "HTTPS")
+Rel(admin, WebFrontend, "Manages the system", "HTTPS")
+
+' ── Relations: front-ends → API Gateway ──────────────────────────────────────
+Rel(WebFrontend, ApiGateway, "Requests", "HTTPS")
+Rel(MobileApp,   ApiGateway, "Requests", "HTTPS")
+
+' ── Relations: API Gateway → services ────────────────────────────────────────
+Rel(ApiGateway, UserManagementService,       "Routes to")
+Rel(ApiGateway, DeviceManagementService,     "Routes to")
+Rel(ApiGateway, TelemetryService,            "Routes to")
+Rel(ApiGateway, AnalyticsService,            "Routes to")
+Rel(ApiGateway, VideoStreamingService,       "Routes to")
+Rel(ApiGateway, AutomationManagementService, "Routes to")
+
+' ── Relations: services → databases ──────────────────────────────────────────
+Rel(UserManagementService,       UserDb,       "Reads / Writes")
+Rel(DeviceManagementService,     DeviceDb,     "Reads / Writes")
+Rel(AutomationManagementService, AutomationDb, "Reads / Writes")
+Rel(AutomationTriggerService,    AutomationDb, "Reads rules and triggers")
+Rel(AutomationSchedulerService,  AutomationDb, "Reads schedules")
+Rel(AutomationExecutorService,   AutomationDb, "Reads scenario steps / Writes execution log")
+Rel(TelemetryService,            TelemetryDb,  "Reads / Writes")
+Rel(AnalyticsService,            TelemetryDb,  "Reads")
+
+' ── Relations: IoT / vendor layer ────────────────────────────────────────────
+Rel(SmartDevices, MQTTBroker, "Telemetry / commands", "MQTT")
+Rel(MQTTBroker, ProviderIntegrationService1, "Forwards device events")
+Rel(MQTTBroker, ProviderIntegrationService2, "Forwards device events")
+Rel(ProviderIntegrationService1, ProviderSystem1, "Interacts", "HTTPS / vendor API")
+Rel(ProviderIntegrationService2, ProviderSystem2, "Interacts", "HTTPS / vendor API")
+
+' ── Relations: Kafka producers ───────────────────────────────────────────────
+Rel(ProviderIntegrationService1, EventQueue, "Publishes device events")
+Rel(ProviderIntegrationService2, EventQueue, "Publishes device events")
+Rel(DeviceManagementService,     EventQueue, "Publishes device state change events")
+Rel(AutomationExecutorService,   EventQueue, "Publishes execution result events")
+
+' ── Relations: Kafka consumers ───────────────────────────────────────────────
+Rel(TelemetryService,         EventQueue, "Consumes telemetry events")
+Rel(AutomationTriggerService, EventQueue, "Consumes device events")
+
+' ── Relations: automation ────────────────────────────────────────────────────
+Rel(AutomationTriggerService,   AutomationExecutorService, "Requests execution", "HTTP / gRPC")
+Rel(AutomationSchedulerService, AutomationExecutorService, "Requests execution", "HTTP / gRPC")
+Rel(AutomationExecutorService,  DeviceManagementService,   "Sends device commands")
+
+' ── Relations: manual device control ─────────────────────────────────────────
+Rel(DeviceManagementService, ProviderIntegrationService1, "Sends control commands")
+Rel(DeviceManagementService, ProviderIntegrationService2, "Sends control commands")
+
+' ── Relations: video streaming ───────────────────────────────────────────────
+Rel(SmartDevices,        VideoStreamingService, "Streams video", "RTSP")
+Rel(VideoStreamingService, WebFrontend,         "Streams video to client", "WebRTC")
+Rel(VideoStreamingService, MobileApp,           "Streams video to client", "WebRTC")
+
+' ── Relations: customer support ──────────────────────────────────────────────
+Rel(user,  HelpDeskSystem, "Submits tickets / chats", "HTTPS")
+Rel(admin, HelpDeskSystem, "Handles support requests", "HTTPS")
+
+@enduml

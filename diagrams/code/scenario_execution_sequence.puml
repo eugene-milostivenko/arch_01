@@ -1,0 +1,65 @@
+@startuml
+title Scenario Execution — Code (Sequence) Diagram
+
+autonumber
+skinparam sequenceMessageAlign center
+
+actor "Automation\nTrigger / Scheduler" as Trigger
+
+box "Automation Executor Service" #F7F9FC
+  participant "ExecutionHandler"      as Handler
+  participant "ScenarioReader"        as Reader
+  participant "ScenarioExecutor"      as Executor
+  participant "CommandDispatcher"     as Dispatcher
+  participant "ExecutionRepository"   as ExecRepo
+end box
+
+database  "Automation DB"              as DB
+participant "Device Management\nService" as Device
+queue     "Event Queue (Kafka)"       as Queue
+
+note over Trigger
+  The trigger condition has already been
+  evaluated by the Trigger / Scheduler service.
+  The executor only runs the scenario's steps.
+end note
+
+Trigger -> Handler : HandleExecution(ExecutionRequest{scenarioID, triggerID})
+activate Handler
+
+Handler -> Reader : GetScenario(scenarioID)
+activate Reader
+Reader -> DB : SELECT scenario + steps
+DB --> Reader : rows
+Reader --> Handler : Scenario
+deactivate Reader
+
+Handler -> Executor : Execute(scenario, triggerID)
+activate Executor
+
+Executor -> ExecRepo : Create(execution, status=RUNNING)
+ExecRepo -> DB : INSERT scenario_execution
+
+loop for each ScenarioStep (ordered by `order`)
+  Executor -> Dispatcher : Dispatch(step)
+  activate Dispatcher
+  Dispatcher -> Device : POST /devices/{id}/commands\nREST (HTTP)
+  activate Device
+  Device --> Dispatcher : CommandResponse{status}
+  deactivate Device
+  Dispatcher --> Executor : CommandAck
+  deactivate Dispatcher
+end
+
+Executor -> Executor : derive overall status\n(SUCCESS / PARTIAL / FAILURE)
+Executor -> ExecRepo : Update(execution, status, finishedAt)
+ExecRepo -> DB : UPDATE scenario_execution
+
+Executor -> Queue : Publish(ExecutionResultEvent)
+
+Executor --> Handler : ScenarioExecution
+deactivate Executor
+Handler --> Trigger : ScenarioExecution
+deactivate Handler
+
+@enduml

@@ -1,0 +1,194 @@
+openapi: 3.0.3
+info:
+  title: Telemetry Service API
+  description: API for querying device telemetry — historical measurements and sensor data.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development
+
+paths:
+  /telemetry/{deviceId}/measurements:
+    get:
+      summary: Get device measurements
+      description: |
+        Returns historical telemetry measurements for a specific device.
+        Supports filtering by metric name and time range.
+        Results are ordered by recorded_at descending (newest first).
+      operationId: getDeviceMeasurements
+      tags:
+        - Telemetry
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          description: Unique device identifier
+          schema:
+            type: string
+            format: uuid
+            example: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+        - name: metric
+          in: query
+          required: false
+          description: "Filter by metric name (e.g. temperature, humidity)"
+          schema:
+            type: string
+            example: "temperature"
+        - name: from
+          in: query
+          required: false
+          description: Start of time range (inclusive)
+          schema:
+            type: string
+            format: date-time
+            example: "2025-05-25T00:00:00Z"
+        - name: to
+          in: query
+          required: false
+          description: End of time range (inclusive)
+          schema:
+            type: string
+            format: date-time
+            example: "2025-05-26T00:00:00Z"
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of records to return (default 100, max 1000)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+        - name: offset
+          in: query
+          required: false
+          description: Number of records to skip for pagination
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: Measurements retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeasurementsResponse"
+              examples:
+                temperature_data:
+                  summary: Temperature readings from a thermostat
+                  value:
+                    device_id: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                    total: 248
+                    limit: 100
+                    offset: 0
+                    measurements:
+                      - id: "f1e2d3c4-b5a6-9870-fedc-ba9876543210"
+                        metric_name: "temperature"
+                        value: 22.5
+                        unit: "celsius"
+                        recorded_at: "2025-05-26T11:55:00Z"
+                      - id: "e2d3c4b5-a6f7-8901-edcb-a98765432109"
+                        metric_name: "temperature"
+                        value: 22.3
+                        unit: "celsius"
+                        recorded_at: "2025-05-26T11:50:00Z"
+                      - id: "d3c4b5a6-f7e8-9012-dcba-987654321098"
+                        metric_name: "temperature"
+                        value: 22.1
+                        unit: "celsius"
+                        recorded_at: "2025-05-26T11:45:00Z"
+        "404":
+          description: Device not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                not_found:
+                  value:
+                    code: "DEVICE_NOT_FOUND"
+                    message: "Device with id 'd290f1ee-6c54-4b01-90e6-d701748f0851' not found"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                invalid_range:
+                  value:
+                    code: "INVALID_PARAMETERS"
+                    message: "'from' must be earlier than 'to'"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                server_error:
+                  value:
+                    code: "INTERNAL_ERROR"
+                    message: "An unexpected error occurred"
+
+components:
+  schemas:
+    MeasurementsResponse:
+      type: object
+      required:
+        - device_id
+        - total
+        - limit
+        - offset
+        - measurements
+      properties:
+        device_id:
+          type: string
+          format: uuid
+        total:
+          type: integer
+          description: Total number of measurements matching the filter
+        limit:
+          type: integer
+        offset:
+          type: integer
+        measurements:
+          type: array
+          items:
+            $ref: "#/components/schemas/Measurement"
+
+    Measurement:
+      type: object
+      required:
+        - id
+        - metric_name
+        - value
+        - unit
+        - recorded_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        metric_name:
+          type: string
+        value:
+          type: number
+          format: float
+        unit:
+          type: string
+        recorded_at:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
