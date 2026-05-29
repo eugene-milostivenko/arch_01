@@ -94,7 +94,13 @@ Automation Executor Service:
 
 **Диаграмма кода (Code)**
 
-Добавьте одну диаграмму или несколько.
+Детализирован самый критичный участок To-Be системы — оркестрация выполнения сценариев автоматизации в Automation Executor Service.
+
+Диаграмма классов — Automation Executor Service:
+![Диаграмма классов — Automation Executor Service](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/eugene-milostivenko/arch_01/refs/heads/warmhouse/diagrams/code/automation_executor_class.puml)
+
+Диаграмма последовательности — выполнение сценария:
+![Диаграмма последовательности — выполнение сценария](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/eugene-milostivenko/arch_01/refs/heads/warmhouse/diagrams/code/scenario_execution_sequence.puml)
 
 # Задание 3. Разработка ER-диаграммы
 

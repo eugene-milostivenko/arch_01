@@ -31,7 +31,7 @@ Rel(ExecutionHandler,  ScenarioExecutor,       "Starts scenario execution")
 Rel(ScenarioExecutor,  CommandDispatcher,      "Dispatches each step as a command")
 Rel(ScenarioExecutor,  ExecutionLogRepository, "Writes execution progress and result")
 
-Rel(CommandDispatcher, DeviceManagementSvc,     "Sends device commands",   "HTTP / gRPC")
+Rel(CommandDispatcher, DeviceManagementSvc,     "Sends device commands",   "REST (HTTP)")
 
 ' ── Relations: outbound ──────────────────────────────────────────────────────
 Rel(ScenarioReader,          AutomationDb,  "Reads scenario steps",    "SQL")
