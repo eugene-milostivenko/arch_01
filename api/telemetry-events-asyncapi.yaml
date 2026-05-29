@@ -5,7 +5,7 @@ info:
     Asynchronous events published when new telemetry data is received from devices.
     Provider Integration Services consume raw MQTT data, normalize it, and publish
     structured telemetry events to Kafka. These events are consumed by the Telemetry Service
-    (for persistence) and the Automation Engine Service (for trigger evaluation).
+    (for persistence) and the Automation Trigger Service (for trigger evaluation).
   version: 1.0.0
 
 servers:
