@@ -1,0 +1,65 @@
+@startuml
+title Automation Rule Execution — Code (Sequence) Diagram
+
+autonumber
+skinparam sequenceMessageAlign center
+
+actor "Automation\nTrigger / Scheduler" as Trigger
+
+box "Automation Executor Service" #F7F9FC
+  participant "ExecutionHandler"      as Handler
+  participant "RuleReader"            as Reader
+  participant "RuleExecutor"          as Executor
+  participant "CommandDispatcher"     as Dispatcher
+  participant "ExecutionRepository"   as ExecRepo
+end box
+
+database  "Automation DB"              as DB
+participant "Device Management\nService" as Device
+queue     "Event Queue (Kafka)"       as Queue
+
+note over Trigger
+  The trigger condition has already been
+  evaluated by the Trigger / Scheduler service.
+  The executor only runs the rule's actions.
+end note
+
+Trigger -> Handler : HandleExecution(ExecutionRequest{ruleID, triggerID})
+activate Handler
+
+Handler -> Reader : GetRule(ruleID)
+activate Reader
+Reader -> DB : SELECT rule + actions
+DB --> Reader : rows
+Reader --> Handler : AutomationRule
+deactivate Reader
+
+Handler -> Executor : Execute(rule, triggerID)
+activate Executor
+
+Executor -> ExecRepo : Create(execution, status=RUNNING)
+ExecRepo -> DB : INSERT automation_execution
+
+loop for each AutomationAction (ordered by `order`)
+  Executor -> Dispatcher : Dispatch(action)
+  activate Dispatcher
+  Dispatcher -> Device : POST /devices/{id}/commands\nREST (HTTP)
+  activate Device
+  Device --> Dispatcher : CommandResponse{status}
+  deactivate Device
+  Dispatcher --> Executor : CommandAck
+  deactivate Dispatcher
+end
+
+Executor -> Executor : derive overall status\n(SUCCESS / PARTIAL / FAILURE)
+Executor -> ExecRepo : Update(execution, status, finishedAt)
+ExecRepo -> DB : UPDATE automation_execution
+
+Executor -> Queue : Publish(ExecutionResultEvent)
+
+Executor --> Handler : AutomationExecution
+deactivate Executor
+Handler --> Trigger : AutomationExecution
+deactivate Handler
+
+@enduml
