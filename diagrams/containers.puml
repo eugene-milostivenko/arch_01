@@ -40,9 +40,11 @@ Container_Boundary(WarmHouseSystem, "WarmHouse System") {
 
   ' ── Domain: Automation ─────────────────────────────────────────────────────
   Container_Boundary(AutomationDomain, "Automation") {
-    Container(AutomationManagementService, "Automation Management Service", "Go", "CRUD for automation rules and scenarios")
-    Container(AutomationEngineService,     "Automation Engine Service",     "Go", "Evaluates triggers, schedules and executes automation scenarios")
-    ContainerDb(AutomationDb, "Automation Database", "PostgreSQL", "Automation rules, scenarios and schedules")
+    Container(AutomationManagementService, "Automation Management Service", "Go", "CRUD for automation rules, scenarios and schedules")
+    Container(AutomationTriggerService,    "Automation Trigger Service",    "Go", "Consumes device events and triggers execution on condition match")
+    Container(AutomationSchedulerService,  "Automation Scheduler Service",  "Go", "Triggers execution on schedule")
+    Container(AutomationExecutorService,   "Automation Executor Service",   "Go", "Orchestrates step-by-step execution of automation scenarios")
+    ContainerDb(AutomationDb, "Automation Database", "PostgreSQL", "Automation rules, scenarios, schedules and execution log")
   }
 
   ' ── Domain: Telemetry ──────────────────────────────────────────────────────
@@ -84,7 +86,9 @@ Rel(ApiGateway, AutomationManagementService, "Routes to")
 Rel(UserManagementService,       UserDb,       "Reads / Writes")
 Rel(DeviceManagementService,     DeviceDb,     "Reads / Writes")
 Rel(AutomationManagementService, AutomationDb, "Reads / Writes")
-Rel(AutomationEngineService,     AutomationDb, "Reads rules / Writes execution log")
+Rel(AutomationTriggerService,    AutomationDb, "Reads rules and triggers")
+Rel(AutomationSchedulerService,  AutomationDb, "Reads schedules")
+Rel(AutomationExecutorService,   AutomationDb, "Reads scenario steps / Writes execution log")
 Rel(TelemetryService,            TelemetryDb,  "Reads / Writes")
 Rel(AnalyticsService,            TelemetryDb,  "Reads")
 
@@ -98,15 +102,17 @@ Rel(ProviderIntegrationService2, ProviderSystem2, "Interacts", "HTTPS / vendor A
 ' ── Relations: Kafka producers ───────────────────────────────────────────────
 Rel(ProviderIntegrationService1, EventQueue, "Publishes device events")
 Rel(ProviderIntegrationService2, EventQueue, "Publishes device events")
-Rel(AutomationEngineService,     EventQueue, "Publishes execution result events")
+Rel(DeviceManagementService,     EventQueue, "Publishes device state change events")
+Rel(AutomationExecutorService,   EventQueue, "Publishes execution result events")
 
 ' ── Relations: Kafka consumers ───────────────────────────────────────────────
-Rel(TelemetryService,        EventQueue, "Consumes telemetry events")
-Rel(AutomationEngineService, EventQueue, "Consumes device events")
+Rel(TelemetryService,         EventQueue, "Consumes telemetry events")
+Rel(AutomationTriggerService, EventQueue, "Consumes device events")
 
 ' ── Relations: automation ────────────────────────────────────────────────────
-Rel(AutomationEngineService, AutomationManagementService, "Reads automation rules")
-Rel(AutomationEngineService, DeviceManagementService,     "Sends device commands")
+Rel(AutomationTriggerService,   AutomationExecutorService, "Requests execution", "HTTP / gRPC")
+Rel(AutomationSchedulerService, AutomationExecutorService, "Requests execution", "HTTP / gRPC")
+Rel(AutomationExecutorService,  DeviceManagementService,   "Sends device commands")
 
 ' ── Relations: manual device control ─────────────────────────────────────────
 Rel(DeviceManagementService, ProviderIntegrationService1, "Sends control commands")
