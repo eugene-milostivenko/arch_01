@@ -57,13 +57,13 @@ paths:
               examples:
                 created:
                   value:
-                    id: "r1a2b3c4-d5e6-7890-abcd-ef1234567890"
+                    id: "11a2b3c4-d5e6-7890-abcd-ef1234567890"
                     name: "Cold room heating"
                     house_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-                    created_by: "u1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                    created_by: "21b2c3d4-e5f6-7890-abcd-ef1234567890"
                     is_active: true
                     triggers:
-                      - id: "t1a2b3c4-d5e6-7890-abcd-ef1234567890"
+                      - id: "31a2b3c4-d5e6-7890-abcd-ef1234567890"
                         trigger_type: "telemetry_threshold"
                         condition:
                           device_id: "d290f1ee-6c54-4b01-90e6-d701748f0851"
