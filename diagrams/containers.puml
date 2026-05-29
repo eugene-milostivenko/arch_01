@@ -40,11 +40,11 @@ Container_Boundary(WarmHouseSystem, "WarmHouse System") {
 
   ' ── Domain: Automation ─────────────────────────────────────────────────────
   Container_Boundary(AutomationDomain, "Automation") {
-    Container(AutomationManagementService, "Automation Management Service", "Go", "CRUD for automation rules, triggers and actions")
+    Container(AutomationManagementService, "Automation Management Service", "Go", "CRUD for automation scenarios, triggers and steps")
     Container(AutomationTriggerService,    "Automation Trigger Service",    "Go", "Consumes device events and triggers execution on condition match")
     Container(AutomationSchedulerService,  "Automation Scheduler Service",  "Go", "Triggers execution on schedule")
-    Container(AutomationExecutorService,   "Automation Executor Service",   "Go", "Orchestrates ordered execution of automation rule actions")
-    ContainerDb(AutomationDb, "Automation Database", "PostgreSQL", "Automation rules, triggers, actions and execution log")
+    Container(AutomationExecutorService,   "Automation Executor Service",   "Go", "Orchestrates ordered execution of automation scenario steps")
+    ContainerDb(AutomationDb, "Automation Database", "PostgreSQL", "Scenarios, triggers, steps and execution log")
   }
 
   ' ── Domain: Telemetry ──────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ Rel(DeviceManagementService,     DeviceDb,     "Reads / Writes")
 Rel(AutomationManagementService, AutomationDb, "Reads / Writes")
 Rel(AutomationTriggerService,    AutomationDb, "Reads rules and triggers")
 Rel(AutomationSchedulerService,  AutomationDb, "Reads schedules")
-Rel(AutomationExecutorService,   AutomationDb, "Reads rule actions / Writes execution log")
+Rel(AutomationExecutorService,   AutomationDb, "Reads scenario steps / Writes execution log")
 Rel(TelemetryService,            TelemetryDb,  "Reads / Writes")
 Rel(AnalyticsService,            TelemetryDb,  "Reads")
 

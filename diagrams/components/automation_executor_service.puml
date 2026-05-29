@@ -8,16 +8,16 @@ Container_Ext(AutomationTriggerSvc,    "Automation Trigger Service",    "Go",   
 Container_Ext(AutomationSchedulerSvc,  "Automation Scheduler Service",  "Go",        "Triggers execution on schedule")
 Container_Ext(DeviceManagementSvc,     "Device Management Service",     "Go",        "Owns device domain. Routes commands to the correct vendor.")
 Container_Ext(EventQueue,              "Event Queue",                   "Kafka",     "System event bus")
-ContainerDb_Ext(AutomationDb,          "Automation Database",           "PostgreSQL","Automation rules, triggers, actions and execution log")
+ContainerDb_Ext(AutomationDb,          "Automation Database",           "PostgreSQL","Scenarios, triggers, steps and execution log")
 
 ' ── Automation Executor Service boundary ─────────────────────────────────────
 Container_Boundary(AutomationExecutorService, "Automation Executor Service") {
 
   Component(ExecutionHandler,    "Execution Handler",     "Go",            "Entry point. Accepts execution requests from Trigger and Scheduler services. Validates and initiates execution.")
-  Component(RuleReader,          "Rule Reader",           "Go",            "Reads the automation rule and its ordered actions from AutomationDb.")
-  Component(RuleExecutor,        "Rule Executor",         "Go",            "Orchestrates ordered execution of the rule's actions and derives the overall execution result.")
-  Component(CommandDispatcher,   "Command Dispatcher",    "Go",            "Translates a rule action into a concrete device command. Delegates delivery to Device Management Service.")
-  Component(ExecutionRepository, "Execution Repository",  "Go",            "Persists execution records: rule, trigger, start / finish time, overall status (success / partial / failure).")
+  Component(ScenarioReader,      "Scenario Reader",       "Go",            "Reads the scenario and its ordered steps from AutomationDb.")
+  Component(ScenarioExecutor,    "Scenario Executor",     "Go",            "Orchestrates ordered execution of the scenario's steps and derives the overall execution result.")
+  Component(CommandDispatcher,   "Command Dispatcher",    "Go",            "Translates a scenario step into a concrete device command. Delegates delivery to Device Management Service.")
+  Component(ExecutionRepository, "Execution Repository",  "Go",            "Persists execution records: scenario, trigger, start / finish time, overall status (success / partial / failure).")
 }
 
 ' ── Relations: inbound ───────────────────────────────────────────────────────
@@ -25,17 +25,17 @@ Rel(AutomationTriggerSvc,   ExecutionHandler, "Requests execution", "HTTP / gRPC
 Rel(AutomationSchedulerSvc, ExecutionHandler, "Requests execution", "HTTP / gRPC")
 
 ' ── Relations: internal ──────────────────────────────────────────────────────
-Rel(ExecutionHandler,  RuleReader,           "Fetches rule definition")
-Rel(ExecutionHandler,  RuleExecutor,         "Starts rule execution")
+Rel(ExecutionHandler,  ScenarioReader,       "Fetches scenario definition")
+Rel(ExecutionHandler,  ScenarioExecutor,     "Starts scenario execution")
 
-Rel(RuleExecutor,  CommandDispatcher,       "Dispatches each action as a command")
-Rel(RuleExecutor,  ExecutionRepository,     "Writes execution result")
+Rel(ScenarioExecutor,  CommandDispatcher,    "Dispatches each step as a command")
+Rel(ScenarioExecutor,  ExecutionRepository,  "Writes execution result")
 
 Rel(CommandDispatcher, DeviceManagementSvc,  "Sends device commands",   "REST (HTTP)")
 
 ' ── Relations: outbound ──────────────────────────────────────────────────────
-Rel(RuleReader,            AutomationDb,  "Reads rule actions",      "SQL")
+Rel(ScenarioReader,        AutomationDb,  "Reads scenario steps",    "SQL")
 Rel(ExecutionRepository,   AutomationDb,  "Writes execution record", "SQL")
-Rel(RuleExecutor,          EventQueue,    "Publishes execution result events")
+Rel(ScenarioExecutor,      EventQueue,    "Publishes execution result events")
 
 @enduml

@@ -44,7 +44,7 @@
     - Интеграция с вендором 2
 
 - Автоматизация
-  - Управление правилами и сценариями
+  - Управление сценариями автоматизации
   - Движок автоматизации: обработка триггеров, планирование и выполнение сценариев
 
 - Телеметрия
@@ -94,13 +94,13 @@ Automation Executor Service:
 
 **Диаграмма кода (Code)**
 
-Детализирован самый критичный участок To-Be системы — оркестрация выполнения действий правила автоматизации в Automation Executor Service.
+Детализирован самый критичный участок To-Be системы — оркестрация выполнения шагов сценария автоматизации в Automation Executor Service.
 
 Диаграмма классов — Automation Executor Service:
 ![Диаграмма классов — Automation Executor Service](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/eugene-milostivenko/arch_01/refs/heads/warmhouse/diagrams/code/automation_executor_class.puml)
 
-Диаграмма последовательности — выполнение правила автоматизации:
-![Диаграмма последовательности — выполнение правила автоматизации](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/eugene-milostivenko/arch_01/refs/heads/warmhouse/diagrams/code/rule_execution_sequence.puml)
+Диаграмма последовательности — выполнение сценария автоматизации:
+![Диаграмма последовательности — выполнение сценария автоматизации](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/eugene-milostivenko/arch_01/refs/heads/warmhouse/diagrams/code/scenario_execution_sequence.puml)
 
 # Задание 3. Разработка ER-диаграммы
 
@@ -132,7 +132,7 @@ Automation Executor Service:
 **REST API (OpenAPI 3.0):**
 - [Device Management Service API](api/device-management-api.yaml) — получение информации об устройстве, отправка команд
 - [Telemetry Service API](api/telemetry-api.yaml) — запрос исторических измерений телеметрии
-- [Automation Management Service API](api/automation-management-api.yaml) — создание правил автоматизации
+- [Automation Management Service API](api/automation-management-api.yaml) — создание сценариев автоматизации
 
 **AsyncAPI:**
 - [Telemetry Events](api/telemetry-events-asyncapi.yaml) — событие получения новой телеметрии с устройства (Kafka topic `device.telemetry.received`)

@@ -6,39 +6,39 @@ hide empty members
 
 ' ── Entry point ───────────────────────────────────────────────────────────────
 class ExecutionHandler {
-  - reader   : RuleReader
-  - executor : RuleExecutor
-  + HandleExecution(req: ExecutionRequest) : AutomationExecution
+  - reader   : ScenarioReader
+  - executor : ScenarioExecutor
+  + HandleExecution(req: ExecutionRequest) : ScenarioExecution
 }
 
-' ── Reads the rule and its actions from the DB ─────────────────────────────────
-class RuleReader {
-  - repo : RuleRepository
-  + GetRule(id: RuleID) : AutomationRule
+' ── Reads the scenario and its steps from the DB ───────────────────────────────
+class ScenarioReader {
+  - repo : ScenarioRepository
+  + GetScenario(id: ScenarioID) : Scenario
 }
 
-' ── Orchestrates ordered execution of the rule's actions ───────────────────────
-class RuleExecutor {
+' ── Orchestrates ordered execution of the scenario's steps ─────────────────────
+class ScenarioExecutor {
   - dispatcher : CommandDispatcher
   - execRepo   : ExecutionRepository
   - publisher  : EventPublisher
-  + Execute(rule: AutomationRule, triggerID: TriggerID) : AutomationExecution
-  - runAction(action: AutomationAction) : CommandAck
+  + Execute(scenario: Scenario, triggerID: TriggerID) : ScenarioExecution
+  - runStep(step: ScenarioStep) : CommandAck
 }
 
-' ── Translates a rule action into a concrete device command ────────────────────
+' ── Translates a scenario step into a concrete device command ──────────────────
 class CommandDispatcher {
   - deviceClient : DeviceClient
-  + Dispatch(action: AutomationAction) : CommandAck
+  + Dispatch(step: ScenarioStep) : CommandAck
 }
 
 ' ── Ports (Go interfaces) ───────────────────────────────────────────────────────
-interface RuleRepository {
-  + FindByID(id: RuleID) : AutomationRule
+interface ScenarioRepository {
+  + FindByID(id: ScenarioID) : Scenario
 }
 interface ExecutionRepository {
-  + Create(exec: AutomationExecution) : void
-  + Update(exec: AutomationExecution) : void
+  + Create(exec: ScenarioExecution) : void
+  + Update(exec: ScenarioExecution) : void
 }
 interface DeviceClient {
   + SendCommand(cmd: DeviceCommand) : CommandAck
@@ -48,20 +48,20 @@ interface EventPublisher {
 }
 
 ' ── Domain entities (aligned with Automation Management API and ER) ─────────────
-class AutomationRule {
-  + ID       : RuleID
+class Scenario {
+  + ID       : ScenarioID
   + HouseID  : UUID
   + Name     : string
   + IsActive : bool
-  + Triggers : AutomationTrigger[]
-  + Actions  : AutomationAction[]
+  + Triggers : ScenarioTrigger[]
+  + Steps    : ScenarioStep[]
 }
-class AutomationTrigger {
+class ScenarioTrigger {
   + ID          : TriggerID
   + TriggerType : TriggerType
   + Condition   : map
 }
-class AutomationAction {
+class ScenarioStep {
   + ID         : UUID
   + DeviceID   : UUID
   + Command    : string
@@ -77,20 +77,20 @@ class CommandAck {
   + CommandID : UUID
   + Status    : CommandStatus
 }
-class AutomationExecution {
+class ScenarioExecution {
   + ID         : UUID
-  + RuleID     : RuleID
+  + ScenarioID : ScenarioID
   + TriggerID  : TriggerID
   + Status     : ExecutionStatus
   + StartedAt  : time
   + FinishedAt : time
 }
 class ExecutionRequest {
-  + RuleID    : RuleID
-  + TriggerID : TriggerID
+  + ScenarioID : ScenarioID
+  + TriggerID  : TriggerID
 }
 class ExecutionResultEvent {
-  + RuleID      : RuleID
+  + ScenarioID  : ScenarioID
   + ExecutionID : UUID
   + Status      : ExecutionStatus
   + FinishedAt  : time
@@ -114,26 +114,26 @@ enum TriggerType {
 }
 
 ' ── Composition / usage relations ──────────────────────────────────────────────
-ExecutionHandler   --> RuleReader           : uses
-ExecutionHandler   --> RuleExecutor          : uses
-RuleReader         ..> RuleRepository        : reads via
-RuleExecutor       --> CommandDispatcher      : dispatches actions
-RuleExecutor       ..> ExecutionRepository    : persists via
-RuleExecutor       ..> EventPublisher         : publishes via
-CommandDispatcher  ..> DeviceClient           : sends via
+ExecutionHandler   --> ScenarioReader        : uses
+ExecutionHandler   --> ScenarioExecutor       : uses
+ScenarioReader     ..> ScenarioRepository      : reads via
+ScenarioExecutor   --> CommandDispatcher        : dispatches steps
+ScenarioExecutor   ..> ExecutionRepository      : persists via
+ScenarioExecutor   ..> EventPublisher           : publishes via
+CommandDispatcher  ..> DeviceClient             : sends via
 
-AutomationRule "1" *-- "many" AutomationAction
-AutomationRule "1" *-- "many" AutomationTrigger
+Scenario "1" *-- "many" ScenarioStep
+Scenario "1" *-- "many" ScenarioTrigger
 
 CommandDispatcher  ..> DeviceCommand          : creates
 CommandDispatcher  ..> CommandAck             : returns
-RuleReader         ..> AutomationRule         : returns
-RuleExecutor       ..> AutomationExecution    : builds
-RuleExecutor       ..> ExecutionResultEvent   : builds
+ScenarioReader     ..> Scenario               : returns
+ScenarioExecutor   ..> ScenarioExecution      : builds
+ScenarioExecutor   ..> ExecutionResultEvent   : builds
 ExecutionHandler   ..> ExecutionRequest       : accepts
 
-AutomationExecution --> ExecutionStatus
-CommandAck          --> CommandStatus
-AutomationTrigger   --> TriggerType
+ScenarioExecution --> ExecutionStatus
+CommandAck        --> CommandStatus
+ScenarioTrigger   --> TriggerType
 
 @enduml

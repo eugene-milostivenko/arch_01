@@ -94,7 +94,7 @@ entity "TelemetryData" as telemetry {
 }
 
 ' ── Automation ────────────────────────────────────────────────────────────────
-entity "AutomationRule" as rule {
+entity "Scenario" as scenario {
   * id : UUID <<PK>>
   --
   * house_id : UUID <<FK>>
@@ -105,29 +105,29 @@ entity "AutomationRule" as rule {
   * updated_at : TIMESTAMP
 }
 
-entity "AutomationTrigger" as trigger {
+entity "ScenarioTrigger" as trigger {
   * id : UUID <<PK>>
   --
-  * rule_id : UUID <<FK>>
+  * scenario_id : UUID <<FK>>
   * trigger_type : VARCHAR
   * condition : JSONB
   * updated_at : TIMESTAMP
 }
 
-entity "AutomationAction" as action {
+entity "ScenarioStep" as step {
   * id : UUID <<PK>>
   --
-  * rule_id : UUID <<FK>>
+  * scenario_id : UUID <<FK>>
   * device_id : UUID <<FK>>
   * command : VARCHAR
   * order : INTEGER
   * updated_at : TIMESTAMP
 }
 
-entity "AutomationExecution" as execution {
+entity "ScenarioExecution" as execution {
   * id : UUID <<PK>>
   --
-  * rule_id : UUID <<FK>>
+  * scenario_id : UUID <<FK>>
   * trigger_id : UUID <<FK>>
   * status : VARCHAR
   * started_at : TIMESTAMP
@@ -141,16 +141,16 @@ user        ||--o{ house_access : "has access via"
 house       ||--o{ house_access : "accessed by"
 house       ||--o{ module    : "has"
 module      ||--o{ device    : "contains"
-house       ||--o{ rule      : "has"
-user        ||--o{ rule      : "creates"
+house       ||--o{ scenario  : "has"
+user        ||--o{ scenario  : "creates"
 device_type ||--o{ device    : "typed as"
 device      ||--o{ telemetry : "generates"
 device      ||--o{ command   : "receives"
-rule        ||--o{ trigger   : "fired by"
-rule        ||--o{ action    : "consists of"
-rule        ||--o{ execution : "logged in"
+scenario    ||--o{ trigger   : "fired by"
+scenario    ||--o{ step      : "consists of"
+scenario    ||--o{ execution : "logged in"
 trigger     ||--o{ execution : "fires"
-device      ||--o{ action    : "targeted by"
+device      ||--o{ step      : "targeted by"
 user        ||--o{ command   : "issues"
 
 @enduml
