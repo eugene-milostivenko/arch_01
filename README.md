@@ -75,18 +75,22 @@
 
 ### 5. Визуализация контекста системы — диаграмма С4
 
-![](https://uml.planttext.com/plantuml/svg/TL5DJy904BttLumzA2Q5NZnvWg099f8G0JsIeLtenlreTgS8_zuPYXOnd7PtPjvxyzuE8s6Wnfg4D1a57nZin3THmTWxKdk2KkCse4qIyZMGXxKdyfRBGHMalKkI6-qAqvGAe2AgusEU1_mQR3LLpPgPGY5CZWQ5jtbjq8bSFr9fz3eVF_HdKbfENtEBaLJWqagqKJiL1hMibinKYDxrX2o3TCb7okS8f01-0rITRnuFp6FJ-oIP7syzQLNIQjyCxORRaj0zgPqk55Xqk5MM5yw0bE4RXKC6sB1h5CDPAzlDTKghvptriDOTsqwvqWSOpLv4WjigE3JoXWtNotQA4t9jcd3xb_YCjvrb5aadU6DKUS8BzVjHw2vUKF8C_zcrVDwKEONwFo9EEHw1yJUXoM8ncpDEO9S0SPrEyPD1Ogv0OnZkhqoVlFnOYRBCa1tmRty3)
+![Диаграмма контекста](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/eugene-milostivenko/arch_01/refs/heads/warmhouse/diagrams/context.puml)
 
 # Задание 2. Проектирование микросервисной архитектуры
 
 В этом задании вам нужно предоставить только диаграммы в модели C4. Мы не просим вас отдельно описывать получившиеся микросервисы и то, как вы определили взаимодействия между компонентами To-Be системы. Если вы правильно подготовите диаграммы C4, они и так это покажут.
 
 **Диаграмма контейнеров (Containers)**
-
+![Диаграмма контейнеров](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/eugene-milostivenko/arch_01/refs/heads/warmhouse/diagrams/containers.puml)
 
 **Диаграмма компонентов (Components)**
 
-Добавьте диаграмму для каждого из выделенных микросервисов.
+Device Management Service:
+![Диаграмма компонентов — Device Management Service](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/eugene-milostivenko/arch_01/refs/heads/warmhouse/diagrams/components/device_management_service.puml)
+
+Automation Executor Service:
+![Диаграмма компонентов — Automation Executor Service](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/eugene-milostivenko/arch_01/refs/heads/warmhouse/diagrams/components/automation_executor_service.puml)
 
 **Диаграмма кода (Code)**
 
@@ -95,6 +99,8 @@
 # Задание 3. Разработка ER-диаграммы
 
 [diagrams/er.puml](diagrams/er.puml)
+
+![ER-диаграмма](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/eugene-milostivenko/arch_01/refs/heads/warmhouse/diagrams/er.puml)
 
 # Задание 4. Создание и документирование API
 
